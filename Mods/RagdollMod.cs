@@ -1,6 +1,8 @@
-﻿using System;
+﻿using GorillaLocomotion;
+using System;
 using System.Collections.Generic;
 using System.Text;
+using UnityEngine;
 using VividV2.Classes.Buttons;
 using VividV2.Classes.Enums;
 using VividV2.Classes.Enums.Keybinds;
@@ -16,6 +18,9 @@ namespace RagdollMod.Mods
         {
             keybind = AddVariable(new Variable("Ragdoll Bind", KeybindType.SingleHand, HandType.Right, KeybindButton.Primary));
             grav = AddVariable(new Variable("Gravity", true));
+            AddVariable(new Variable("Ragdoll Velocity X", 0, -100, 100));
+            AddVariable(new Variable("Ragdoll Velocity Y", 0, -100, 100));
+            AddVariable(new Variable("Ragdoll Velocity Z", 0, -100, 100));
         }
 
 
@@ -25,7 +30,11 @@ namespace RagdollMod.Mods
 
             if (keybind.PressedValue)
             {
-                Plugin.instance.EnableRagdoll();
+                Plugin.instance.EnableRagdoll(new UnityEngine.Vector3(
+                    (float)GetVariable("Ragdoll Velocity X").IntValue,
+                    (float)GetVariable("Ragdoll Velocity Y").IntValue,
+                    (float)GetVariable("Ragdoll Velocity Z").IntValue
+                ));
             }
             else
             {

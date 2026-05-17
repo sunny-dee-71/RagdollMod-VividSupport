@@ -96,8 +96,7 @@ namespace RagdollMod
 
             target.constraints = source.constraints;
         }
-
-        public void Die()
+        public void Die(Vector3 ExtraVelocity)
         {
             if (Ragdoll != null)
                 Destroy(Ragdoll);
@@ -129,13 +128,13 @@ namespace RagdollMod
             };
             foreach (string velocity in velocitySets)
             {
-                Ragdoll.transform.Find(velocity).GetComponent<Rigidbody>().linearVelocity = GorillaTagger.Instance.rigidbody.linearVelocity;
+                Ragdoll.transform.Find(velocity).GetComponent<Rigidbody>().linearVelocity = GorillaTagger.Instance.rigidbody.linearVelocity + ExtraVelocity;
             }
 
-            Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L").GetComponent<Rigidbody>().linearVelocity = GorillaLocomotion.GTPlayer.Instance.LeftHand.velocityTracker.GetAverageVelocity(true, 0);
+            Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L").GetComponent<Rigidbody>().linearVelocity = GorillaLocomotion.GTPlayer.Instance.LeftHand.velocityTracker.GetAverageVelocity(true, 0) + ExtraVelocity;
             Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L").GetComponent<Rigidbody>().angularVelocity = GameObject.Find("Player Objects/Player VR Controller/GorillaPlayer/TurnParent/LeftHand Controller").GetOrAddComponent<GorillaVelocityEstimator>().angularVelocity;
 
-            Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R").GetComponent<Rigidbody>().linearVelocity = GorillaLocomotion.GTPlayer.Instance.RightHand.velocityTracker.GetAverageVelocity(true, 0);
+            Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R").GetComponent<Rigidbody>().linearVelocity = GorillaLocomotion.GTPlayer.Instance.RightHand.velocityTracker.GetAverageVelocity(true, 0) + ExtraVelocity;
             Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R").GetComponent<Rigidbody>().angularVelocity = GameObject.Find("Player Objects/Player VR Controller/GorillaPlayer/TurnParent/RightHand Controller").GetOrAddComponent<GorillaVelocityEstimator>().angularVelocity;
 
             Ragdoll.transform.Find("Stand/Gorilla Rig/body/head").transform.rotation = GorillaTagger.Instance.headCollider.transform.rotation;
@@ -162,20 +161,19 @@ namespace RagdollMod
             startForward = Ragdoll.transform.forward;
         }
 
-        public void EnableRagdoll()
+        public void EnableRagdoll(Vector3 ExtraVelocity)
         {
             if (isDead)
                 return;
 
             isDead = true;
-            Die();
+            Die(ExtraVelocity);
         }
 
         public void DisableRagdoll()
         {
             if (!isDead)
                 return;
-
             isDead = false;
         }
 
