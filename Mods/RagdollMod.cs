@@ -11,9 +11,11 @@ namespace RagdollMod.Mods
     public class RagdollMod : Module
     {
         public Variable keybind;
+        public static Variable grav;
         public RagdollMod() : base("Ragdoll", Categories.Ragdoll, true)
         {
             keybind = AddVariable(new Variable("Ragdoll Bind", KeybindType.SingleHand, HandType.Right, KeybindButton.Primary));
+            grav = AddVariable(new Variable("Gravity", true));
         }
 
 

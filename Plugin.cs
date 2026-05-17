@@ -4,6 +4,7 @@ using GorillaNetworking;
 using HarmonyLib;
 using Photon.Pun;
 using Photon.Voice.Unity;
+using RagdollMod.Mods;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -148,6 +149,14 @@ namespace RagdollMod
             foreach (Rigidbody body in Ragdoll.GetComponentsInChildren<Rigidbody>())
             {
                 CopyRigidbodySettings(body, goodBody);
+                if (RagdollMod.Mods.RagdollMod.grav.BoolValue)
+                {
+                    body.useGravity = true;
+                }
+                else
+                {
+                    body.useGravity = false;
+                }
             }
 
             startForward = Ragdoll.transform.forward;
