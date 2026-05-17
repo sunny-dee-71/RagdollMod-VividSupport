@@ -19,7 +19,7 @@ namespace RagdollMod
     {
         public static Plugin instance;
 
-        public void Start()
+        public void Awake()
         {
             instance = this;
         }
