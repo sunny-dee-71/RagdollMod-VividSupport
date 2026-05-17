@@ -81,6 +81,20 @@ namespace RagdollMod
 
             portedCosmetics.Clear();
         }
+        public static void CopyRigidbodySettings(Rigidbody target, Rigidbody source)
+        {
+            target.mass = source.mass;
+            target.drag = source.drag;
+            target.angularDrag = source.angularDrag;
+
+            target.useGravity = source.useGravity;
+            target.isKinematic = source.isKinematic;
+
+            target.collisionDetectionMode = source.collisionDetectionMode;
+            target.interpolation = source.interpolation;
+
+            target.constraints = source.constraints;
+        }
 
         public void Die()
         {
@@ -91,12 +105,6 @@ namespace RagdollMod
             DisableCosmetics();
 
             Ragdoll = LoadAsset("ragdoll");
-
-            foreach (Rigidbody rb in Ragdoll.GetComponentsInChildren<Rigidbody>())
-            {
-                rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-                rb.interpolation = RigidbodyInterpolation.Interpolate;
-            }
 
             Ragdoll.transform.Find("Stand/Gorilla Rig/body").transform.position = VRRig.LocalRig.transform.Find("rig/body_pivot").position;
             Ragdoll.transform.Find("Stand/Gorilla Rig/body").transform.rotation = VRRig.LocalRig.transform.Find("rig/body_pivot").rotation;
@@ -135,16 +143,15 @@ namespace RagdollMod
 
             Ragdoll.transform.Find("Stand/Mesh").gameObject.GetComponent<Renderer>().renderingLayerMask = 0;
 
+            Rigidbody goodBody = Ragdoll.transform.Find("Stand/Gorilla Rig/body/head").GetComponent<Rigidbody>();
+
+            foreach (Rigidbody body in Ragdoll.GetComponentsInChildren<Rigidbody>())
+            {
+                CopyRigidbodySettings(body, goodBody);
+            }
+
             startForward = Ragdoll.transform.forward;
         }
-
-        public static Vector3 World2Player(Vector3 world)
-        {
-            return world - GorillaTagger.Instance.bodyCollider.transform.position + GorillaTagger.Instance.transform.position;
-        }
-
-        public bool hasInit;
-        public bool lastLeftHeld;
 
         public void EnableRagdoll()
         {
