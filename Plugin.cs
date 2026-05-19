@@ -1,5 +1,6 @@
 ﻿using BepInEx;
 using GorillaExtensions;
+using GorillaLocomotion;
 using GorillaNetworking;
 using HarmonyLib;
 using Photon.Pun;
@@ -217,8 +218,11 @@ namespace RagdollMod
             VRRig.LocalRig.rightHand.rigTarget.transform.rotation = Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R").transform.rotation;
 
             VRRig.LocalRig.head.rigTarget.transform.rotation = Ragdoll.transform.Find("Stand/Gorilla Rig/body/head").transform.rotation;
+            if (ControllerInputPoller.instance.rightGrab)
+            {
+                Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().linearVelocity = (GTPlayer.Instance.RightHand.controllerTransform.position - Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().position) * 20f;
+            }
         }
-
         public static Vector3 startForward;
         public static bool isDead;
 

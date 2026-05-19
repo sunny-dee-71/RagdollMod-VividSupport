@@ -108,7 +108,8 @@
     <Reference Include="LIV.LCK_GorillaTag">
       <HintPath>$(GameAssemblyPath)\LIV.LCK_GorillaTag.dll</HintPath>
     </Reference>
-    <Reference Include="LIV.NativeAudioBridge">
+    <Reference Include="LIV.Native
+			   Bridge">
       <HintPath>$(GameAssemblyPath)\LIV.NativeAudioBridge.dll</HintPath>
     </Reference>
     <Reference Include="MeshBakerCore">
