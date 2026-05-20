@@ -22,33 +22,46 @@ namespace RagdollMod
     {
         public static Plugin instance;
 
+        public static GameObject Ragdoll;
+        public static bool isDead;
+        public static Vector3 startForward;
+
+        public static VRRig GrabbingRig;
+        public static Rigidbody GrabBody;
+        public static bool GrabHand; // true = right
+
+        private static AssetBundle assetBundle;
+
+        private Transform bodyRoot;
+        private Rigidbody bodyRB;
+        private readonly List<Rigidbody> ragdollBodies = new();
+
+        private readonly Dictionary<string, Transform> cachedBones = new();
+
         public void Awake()
         {
             instance = this;
         }
 
-        private static AssetBundle assetBundle;
         public static GameObject LoadAsset(string assetName)
         {
-            GameObject gameObject = null;
+            Stream stream = Assembly.GetExecutingAssembly()
+                .GetManifestResourceStream("RagdollMod.Resources.ragdoll");
 
-            Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("RagdollMod.Resources.ragdoll");
-            if (stream != null)
+            if (stream == null)
             {
-                if (assetBundle == null)
-                    assetBundle = AssetBundle.LoadFromStream(stream);
-                
-                gameObject = Instantiate<GameObject>(assetBundle.LoadAsset<GameObject>(assetName));
-            }
-            else
-            {
-                Debug.LogError("Failed to load asset from resource: " + assetName);
+                Debug.LogError("Failed to load asset stream");
+                return null;
             }
 
-            return gameObject;
+            if (assetBundle == null)
+                assetBundle = AssetBundle.LoadFromStream(stream);
+
+            return Instantiate(assetBundle.LoadAsset<GameObject>(assetName));
         }
 
-        private static List<GameObject> portedCosmetics = new List<GameObject> { };
+        private static List<GameObject> portedCosmetics = new();
+
         public static void DisableCosmetics()
         {
             try
@@ -57,13 +70,13 @@ namespace RagdollMod
                 VRRig.LocalRig.transform.Find("rig/body_pivot/TransferrableItemRightShoulder").gameObject.SetActive(false);
                 VRRig.LocalRig.transform.Find("rig/head/gorillaface").gameObject.layer = LayerMask.NameToLayer("Default");
 
-                foreach (GameObject Cosmetic in VRRig.LocalRig.cosmetics)
+                foreach (GameObject c in VRRig.LocalRig.cosmetics)
                 {
-                    if (Cosmetic.activeSelf && Cosmetic.transform.parent == VRRig.LocalRig.mainCamera.transform.Find("HeadCosmetics"))
+                    if (c.activeSelf && c.transform.parent == VRRig.LocalRig.mainCamera.transform.Find("HeadCosmetics"))
                     {
-                        portedCosmetics.Add(Cosmetic);
-                        Cosmetic.transform.SetParent(VRRig.LocalRig.headMesh.transform, false);
-                        Cosmetic.transform.localPosition += new Vector3(0f, 0.1333f, 0.1f);
+                        portedCosmetics.Add(c);
+                        c.transform.SetParent(VRRig.LocalRig.headMesh.transform, false);
+                        c.transform.localPosition += new Vector3(0f, 0.1333f, 0.1f);
                     }
                 }
             }
@@ -76,14 +89,16 @@ namespace RagdollMod
             VRRig.LocalRig.transform.Find("rig/body_pivot/TransferrableItemRightShoulder").gameObject.SetActive(true);
 
             VRRig.LocalRig.transform.Find("rig/head/gorillaface").gameObject.layer = LayerMask.NameToLayer("MirrorOnly");
-            foreach (GameObject Cosmetic in portedCosmetics)
+
+            foreach (GameObject c in portedCosmetics)
             {
-                Cosmetic.transform.SetParent(VRRig.LocalRig.mainCamera.transform.Find("HeadCosmetics"), false);
-                Cosmetic.transform.localPosition -= new Vector3(0f, 0.1333f, 0.1f);
+                c.transform.SetParent(VRRig.LocalRig.mainCamera.transform.Find("HeadCosmetics"), false);
+                c.transform.localPosition -= new Vector3(0f, 0.1333f, 0.1f);
             }
 
             portedCosmetics.Clear();
         }
+
         public static void CopyRigidbodySettings(Rigidbody target, Rigidbody source)
         {
             target.mass = source.mass;
@@ -95,14 +110,14 @@ namespace RagdollMod
 
             target.collisionDetectionMode = source.collisionDetectionMode;
             target.interpolation = source.interpolation;
-
             target.constraints = source.constraints;
 
             target.excludeLayers = source.excludeLayers;
-            target.useGravity = source.useGravity;
             target.includeLayers = source.includeLayers;
         }
-        public void Die(Vector3 ExtraVelocity)
+
+
+        public void Die(Vector3 extraVelocity)
         {
             if (Ragdoll != null)
                 Destroy(Ragdoll);
@@ -111,17 +126,55 @@ namespace RagdollMod
             DisableCosmetics();
 
             Ragdoll = LoadAsset("ragdoll");
+            SetupSounds(Ragdoll.transform);
 
-            Ragdoll.transform.Find("Stand/Gorilla Rig/body").transform.position = VRRig.LocalRig.transform.Find("rig/body_pivot").position;
-            Ragdoll.transform.Find("Stand/Gorilla Rig/body").transform.rotation = VRRig.LocalRig.transform.Find("rig/body_pivot").rotation;
+            CacheBones();
 
-            Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L").transform.position = VRRig.LocalRig.leftHand.rigTarget.transform.position;
-            Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L").transform.rotation = VRRig.LocalRig.leftHand.rigTarget.transform.rotation;
+            Transform body = GetBone("Stand/Gorilla Rig/body");
 
-            Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R").transform.position = VRRig.LocalRig.rightHand.rigTarget.transform.position;
-            Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R").transform.rotation = VRRig.LocalRig.rightHand.rigTarget.transform.rotation;
+            body.position = VRRig.LocalRig.transform.Find("rig/body_pivot").position;
+            body.rotation = VRRig.LocalRig.transform.Find("rig/body_pivot").rotation;
 
-            string[] velocitySets = new string[]
+            SetHandPose("L", VRRig.LocalRig.leftHand.rigTarget);
+            SetHandPose("R", VRRig.LocalRig.rightHand.rigTarget);
+
+            ApplyInitialVelocity(extraVelocity);
+
+            CacheRagdoll();
+            Ragdoll.transform.Find("Stand/Mesh").gameObject.GetComponent<Renderer>().renderingLayerMask = 0;
+            startForward = Ragdoll.transform.forward;
+        }
+
+        private void CacheBones()
+        {
+            cachedBones.Clear();
+
+            foreach (Transform t in Ragdoll.GetComponentsInChildren<Transform>(true))
+                cachedBones[t.name] = t;
+        }
+
+        private Transform GetBone(string path)
+        {
+            string key = path.Split('/').Last();
+            return cachedBones.TryGetValue(key, out var t) ? t : null;
+        }
+
+        private void SetHandPose(string side, Transform target)
+        {
+            string hand = side == "L"
+                ? "Stand/Gorilla Rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L"
+                : "Stand/Gorilla Rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R";
+
+            Transform h = GetBone(hand);
+            if (h == null) return;
+
+            h.position = target.position;
+            h.rotation = target.rotation;
+        }
+
+        private void ApplyInitialVelocity(Vector3 extra)
+        {
+            string[] sets =
             {
                 "Stand/Gorilla Rig/body",
                 "Stand/Gorilla Rig/body/head",
@@ -132,56 +185,21 @@ namespace RagdollMod
                 "Stand/Gorilla Rig/body/shoulder.L/upper_arm.L/forearm.L",
                 "Stand/Gorilla Rig/body/shoulder.R/upper_arm.R/forearm.R",
             };
-            foreach (string velocity in velocitySets)
+
+            foreach (string p in sets)
             {
-                Ragdoll.transform.Find(velocity).GetComponent<Rigidbody>().linearVelocity = GorillaTagger.Instance.rigidbody.linearVelocity + ExtraVelocity;
+                var rb = GetBone(p)?.GetComponent<Rigidbody>();
+                if (rb != null)
+                    rb.linearVelocity = GorillaTagger.Instance.rigidbody.linearVelocity + extra;
             }
-
-            Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L").GetComponent<Rigidbody>().linearVelocity = GorillaLocomotion.GTPlayer.Instance.LeftHand.velocityTracker.GetAverageVelocity(true, 0) + ExtraVelocity;
-            Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L").GetComponent<Rigidbody>().angularVelocity = GameObject.Find("Player Objects/Player VR Controller/GorillaPlayer/TurnParent/LeftHand Controller").GetOrAddComponent<GorillaVelocityEstimator>().angularVelocity;
-
-            Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R").GetComponent<Rigidbody>().linearVelocity = GorillaLocomotion.GTPlayer.Instance.RightHand.velocityTracker.GetAverageVelocity(true, 0) + ExtraVelocity;
-            Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R").GetComponent<Rigidbody>().angularVelocity = GameObject.Find("Player Objects/Player VR Controller/GorillaPlayer/TurnParent/RightHand Controller").GetOrAddComponent<GorillaVelocityEstimator>().angularVelocity;
-
-            Ragdoll.transform.Find("Stand/Gorilla Rig/body/head").transform.rotation = GorillaTagger.Instance.headCollider.transform.rotation;
-
-            VRRig.LocalRig.head.rigTarget.transform.rotation = Ragdoll.transform.Find("Stand/Gorilla Rig/body/head").transform.rotation;
-
-            Ragdoll.transform.Find("Stand/Mesh").gameObject.GetComponent<Renderer>().renderingLayerMask = 0;
-
-            Rigidbody goodBody = Ragdoll.transform.Find("Stand/Gorilla Rig/body/head").GetComponent<Rigidbody>();
-
-            foreach (Rigidbody body in Ragdoll.GetComponentsInChildren<Rigidbody>())
-            {
-                CopyRigidbodySettings(body, goodBody);
-                if (RagdollMod.Mods.RagdollMod.grav.BoolValue)
-                {
-                    body.useGravity = true;
-                }
-                else
-                {
-                    body.useGravity = false;
-                }
-                body.gameObject.AddComponent<Hit>();
-            }
-
-            startForward = Ragdoll.transform.forward;
         }
 
-        public void EnableRagdoll(Vector3 ExtraVelocity)
+        private void CacheRagdoll()
         {
-            if (isDead)
-                return;
-
-            isDead = true;
-            Die(ExtraVelocity);
-        }
-
-        public void DisableRagdoll()
-        {
-            if (!isDead)
-                return;
-            isDead = false;
+            bodyRoot = GetBone("Stand/Gorilla Rig/body");
+            bodyRB = bodyRoot.GetComponent<Rigidbody>();
+            ragdollBodies.Clear();
+            ragdollBodies.AddRange(Ragdoll.GetComponentsInChildren<Rigidbody>());
         }
 
         public void Update()
@@ -189,84 +207,144 @@ namespace RagdollMod
             if (GorillaLocomotion.GTPlayer.Instance == null)
                 return;
 
-            if (isDead)
+            if (!isDead && Ragdoll != null)
             {
-                if (Ragdoll != null)
-                {
-                    VRRig.LocalRig.enabled = false;
+                VRRig.LocalRig.enabled = true;
+                EnableCosmetics();
 
-                    UpdateRigPos();
-                }
+                Destroy(Ragdoll);
+                Ragdoll = null;
+                return;
             }
-            else
+
+            if (isDead && Ragdoll != null)
             {
-                if (Ragdoll != null)
-                {
-                    VRRig.LocalRig.enabled = true;
-                    EnableCosmetics();
-
-                    Destroy(Ragdoll);
-
-                    Ragdoll = null;
-                }
+                VRRig.LocalRig.enabled = false;
+                UpdateRigPos();
             }
+        }
+
+        public void SetupSounds(Transform parent)
+        {
+            Transform[] transforms = parent.GetComponentsInChildren<Transform>();
+            foreach (var t in transforms)
+                t.AddComponent<Hit>();
         }
 
         public void UpdateRigPos()
         {
-            VRRig.LocalRig.transform.position = Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.transform.position;
-            VRRig.LocalRig.transform.rotation = Ragdoll.transform.Find("Stand/Gorilla Rig/body").transform.rotation;
+            if (Ragdoll == null || bodyRoot == null) return;
 
-            VRRig.LocalRig.leftHand.rigTarget.transform.position = Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L").transform.position;
-            VRRig.LocalRig.rightHand.rigTarget.transform.position = Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R").transform.position;
+            VRRig.LocalRig.transform.position = bodyRoot.position;
+            VRRig.LocalRig.transform.rotation = bodyRoot.rotation;
 
-            VRRig.LocalRig.leftHand.rigTarget.transform.rotation = Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L").transform.rotation;
-            VRRig.LocalRig.rightHand.rigTarget.transform.rotation = Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R").transform.rotation;
+            Transform l = GetBone("Stand/Gorilla Rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L");
+            Transform r = GetBone("Stand/Gorilla Rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R");
+            Transform h = GetBone("Stand/Gorilla Rig/body/head");
 
-            VRRig.LocalRig.head.rigTarget.transform.rotation = Ragdoll.transform.Find("Stand/Gorilla Rig/body/head").transform.rotation;
+            if (l && r && h)
+            {
+                VRRig.LocalRig.leftHand.rigTarget.position = l.position;
+                VRRig.LocalRig.rightHand.rigTarget.position = r.position;
+                VRRig.LocalRig.head.rigTarget.rotation = h.rotation;
+            }
+
+            HandleGrab();
+        }
+
+        private void HandleGrab()
+        {
+            if (GrabbingRig == null)
+                DetectGrab();
+
+            if (GrabbingRig == null)
+                return;
+
+            var c = VividV2.Classes.Utils.RigUtils.GetCurrentRig(GrabbingRig);
+
+            bool released =
+                c.rightIndex.calcT < 0.5f &&
+                c.rightMiddle.calcT < 0.5f &&
+                c.leftIndex.calcT < 0.5f &&
+                c.leftMiddle.calcT < 0.5f;
+
+            if (released)
+            {
+                GrabbingRig = null;
+                GrabBody = null;
+                return;
+            }
+
+            if (GrabBody == null || bodyRB == null)
+                return;
+
+            Vector3 target = GrabHand
+                ? c.rightHandTransform.position
+                : c.leftHandTransform.position;
+
+            GrabBody.linearVelocity = (target - bodyRB.position) * 25f;
+        }
+
+        private void DetectGrab()
+        {
             foreach (VRRig rig in VividV2.Classes.Utils.RigUtils.GetVRRigs())
             {
-                if (GrabbingRig == null)
-                {
-                    foreach (Rigidbody body in Ragdoll.GetComponentsInChildren<Rigidbody>())
-                    {
-                        if (Vector3.Distance(rig.rightHand.rigTarget.transform.position, body.position) < 0.3f && VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).rightIndex.calcT > 0.5f || VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).rightMiddle.calcT > 0.5f && Vector3.Distance(rig.rightHand.rigTarget.transform.position, body.position) < 0.3f)
-                        {
-                            GrabbingRig = rig;
-                            GrabHand = true;
-                            GrabBody = body;
-                        }
+                var c = VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig);
 
-                        if (Vector3.Distance(rig.leftHand.rigTarget.transform.position, body.position) < 0.3f && VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).leftIndex.calcT > 0.5f || VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).leftMiddle.calcT > 0.5f && Vector3.Distance(rig.leftHand.rigTarget.transform.position, body.position) < 0.3f)
-                        {
-                            GrabbingRig = rig;
-                            GrabHand = false;
-                            GrabBody = body;
-                        }
-                    }
-                }
-                if (GrabbingRig != null && GrabbingRig.rightIndex.calcT < 0.5f && GrabbingRig.rightMiddle.calcT < 0.5f && GrabbingRig.leftIndex.calcT < 0.5f && GrabbingRig.leftMiddle.calcT < 0.5f)
+                foreach (var body in ragdollBodies)
                 {
-                    GrabbingRig = null;
-                }
-                if (GrabbingRig != null)
-                {
-                    if (GrabHand)
+                    float rDist = Vector3.Distance(c.rightHandTransform.position, body.position);
+                    float lDist = Vector3.Distance(c.leftHandTransform.position, body.position);
+
+                    bool right =
+                        rDist < 0.3f &&
+                        (c.rightIndex.calcT > 0.5f || c.rightMiddle.calcT > 0.5f);
+
+                    bool left =
+                        lDist < 0.3f &&
+                        (c.leftIndex.calcT > 0.5f || c.leftMiddle.calcT > 0.5f);
+
+                    if (right)
                     {
-                        GrabBody.linearVelocity = (GrabbingRig.rightHand.rigTarget.transform.position - Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().position) * 25f;
+                        GrabbingRig = c;
+                        GrabBody = body;
+                        GrabHand = true;
+                        return;
                     }
-                    else
+
+                    if (left)
                     {
-                        GrabBody.linearVelocity = (GrabbingRig.leftHand.rigTarget.transform.position - Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().position) * 25f;
+                        GrabbingRig = c;
+                        GrabBody = body;
+                        GrabHand = false;
+                        return;
                     }
                 }
             }
         }
-        public static Vector3 startForward;
-        public static bool isDead;
-        public static VRRig GrabbingRig;
-        public static Rigidbody GrabBody;
-        public static bool GrabHand = true; //true = right, false = left
-        public static GameObject Ragdoll;
+
+        public void EnableRagdoll(Vector3 extraVelocity)
+        {
+            if (isDead) return;
+
+            isDead = true;
+            Die(extraVelocity);
+        }
+
+        public void DisableRagdoll()
+        {
+            if (!isDead) return;
+
+            isDead = false;
+
+            if (Ragdoll != null)
+            {
+                VRRig.LocalRig.enabled = true;
+                EnableCosmetics();
+
+                Destroy(Ragdoll);
+                Ragdoll = null;
+            }
+        }
     }
 }
