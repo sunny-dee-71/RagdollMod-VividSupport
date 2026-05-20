@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.Animations.Rigging;
 using UnityEngine.UI;
 using Valve.VR;
 
@@ -221,19 +222,47 @@ namespace RagdollMod
             VRRig.LocalRig.head.rigTarget.transform.rotation = Ragdoll.transform.Find("Stand/Gorilla Rig/body/head").transform.rotation;
             foreach (VRRig rig in VividV2.Classes.Utils.RigUtils.GetVRRigs())
             {
-                if (Vector3.Distance(rig.rightHand.rigTarget.transform.position, Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.transform.position) < 0.2f && VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).rightIndex.calcT > 0.5f || VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).rightMiddle.calcT > 0.5f && Vector3.Distance(rig.rightHand.rigTarget.transform.position, Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.transform.position) < 0.2f)
+                if (GrabbingRig == null)
                 {
-                    Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().linearVelocity = (rig.rightHand.rigTarget.transform.position - Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().position) * 20f;
+                    foreach (Rigidbody body in Ragdoll.GetComponentsInChildren<Rigidbody>())
+                    {
+                        if (Vector3.Distance(rig.rightHand.rigTarget.transform.position, body.position) < 0.3f && VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).rightIndex.calcT > 0.5f || VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).rightMiddle.calcT > 0.5f && Vector3.Distance(rig.rightHand.rigTarget.transform.position, body.position) < 0.3f)
+                        {
+                            GrabbingRig = rig;
+                            GrabHand = true;
+                            GrabBody = body;
+                        }
+
+                        if (Vector3.Distance(rig.leftHand.rigTarget.transform.position, body.position) < 0.3f && VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).leftIndex.calcT > 0.5f || VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).leftMiddle.calcT > 0.5f && Vector3.Distance(rig.leftHand.rigTarget.transform.position, body.position) < 0.3f)
+                        {
+                            GrabbingRig = rig;
+                            GrabHand = false;
+                            GrabBody = body;
+                        }
+                    }
                 }
-                if (Vector3.Distance(rig.leftHand.rigTarget.transform.position, Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.transform.position) < 0.2f && VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).leftIndex.calcT > 0.5f || VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).leftMiddle.calcT > 0.5f && Vector3.Distance(rig.leftHand.rigTarget.transform.position, Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.transform.position) < 0.2f)
+                if (GrabbingRig != null && GrabbingRig.rightIndex.calcT < 0.5f && GrabbingRig.rightMiddle.calcT < 0.5f && GrabbingRig.leftIndex.calcT < 0.5f && GrabbingRig.leftMiddle.calcT < 0.5f)
                 {
-                    Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().linearVelocity = (rig.leftHand.rigTarget.transform.position - Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().position) * 20f;
+                    GrabbingRig = null;
+                }
+                if (GrabbingRig != null)
+                {
+                    if (GrabHand)
+                    {
+                        GrabBody.GetComponent<Rigidbody>().linearVelocity = (GrabbingRig.rightHand.rigTarget.transform.position - Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().position) * 25f;
+                    }
+                    else
+                    {
+                        GrabBody.GetComponent<Rigidbody>().linearVelocity = (GrabbingRig.leftHand.rigTarget.transform.position - Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().position) * 25f;
+                    }
                 }
             }
         }
         public static Vector3 startForward;
         public static bool isDead;
-
+        public static VRRig GrabbingRig;
+        public static Rigidbody GrabBody;
+        public static bool GrabHand = true; //true = right, false = left
         public static GameObject Ragdoll;
     }
 }
