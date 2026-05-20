@@ -249,11 +249,11 @@ namespace RagdollMod
                 {
                     if (GrabHand)
                     {
-                        GrabBody.GetComponent<Rigidbody>().linearVelocity = (GrabbingRig.rightHand.rigTarget.transform.position - Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().position) * 25f;
+                        GrabBody.linearVelocity = (GrabbingRig.rightHand.rigTarget.transform.position - Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().position) * 25f;
                     }
                     else
                     {
-                        GrabBody.GetComponent<Rigidbody>().linearVelocity = (GrabbingRig.leftHand.rigTarget.transform.position - Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().position) * 25f;
+                        GrabBody.linearVelocity = (GrabbingRig.leftHand.rigTarget.transform.position - Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().position) * 25f;
                     }
                 }
             }
