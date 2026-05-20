@@ -97,6 +97,10 @@ namespace RagdollMod
             target.interpolation = source.interpolation;
 
             target.constraints = source.constraints;
+
+            target.excludeLayers = source.excludeLayers;
+            target.useGravity = source.useGravity;
+            target.includeLayers = source.includeLayers;
         }
         public void Die(Vector3 ExtraVelocity)
         {
