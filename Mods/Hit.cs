@@ -19,6 +19,8 @@ namespace RagdollMod.Mods
             if (collision.relativeVelocity.magnitude >= 2f)
             {
                 LastHit = Time.time;
+                if (collision.gameObject.GetComponent<GorillaSurfaceOverride>() == null)
+                    return;
                 GorillaTagger.Instance.myVRRig.SendRPC("RPC_PlayHandTap", RpcTarget.All, new object[] { collision.gameObject.GetComponent<GorillaSurfaceOverride>().overrideIndex, false, collision.relativeVelocity.magnitude / 10f });
             }
         }
