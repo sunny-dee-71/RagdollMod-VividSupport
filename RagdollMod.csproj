@@ -202,7 +202,8 @@
     <Reference Include="PhotonVoice.PUN">
       <HintPath>$(GameAssemblyPath)\PhotonVoice.PUN.dll</HintPath>
     </Reference>
-    <Reference Include="PlayFab">
+    <Reference Include="
+			   Fab">
       <HintPath>$(GameAssemblyPath)\PlayFab.dll</HintPath>
     </Reference>
     <Reference Include="Sirenix.OdinInspector.Attributes">

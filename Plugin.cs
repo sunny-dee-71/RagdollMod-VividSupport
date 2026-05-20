@@ -157,6 +157,7 @@ namespace RagdollMod
                 {
                     body.useGravity = false;
                 }
+                body.gameObject.AddComponent<Hit>();
             }
 
             startForward = Ragdoll.transform.forward;
@@ -218,9 +219,16 @@ namespace RagdollMod
             VRRig.LocalRig.rightHand.rigTarget.transform.rotation = Ragdoll.transform.Find("Stand/Gorilla Rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R").transform.rotation;
 
             VRRig.LocalRig.head.rigTarget.transform.rotation = Ragdoll.transform.Find("Stand/Gorilla Rig/body/head").transform.rotation;
-            if (ControllerInputPoller.instance.rightGrab)
+            foreach (VRRig rig in VividV2.Classes.Utils.RigUtils.GetVRRigs())
             {
-                Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().linearVelocity = (GTPlayer.Instance.RightHand.controllerTransform.position - Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().position) * 20f;
+                if (Vector3.Distance(rig.rightHand.rigTarget.transform.position, Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.transform.position) < 0.2f && VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).rightIndex.calcT > 0.5f || VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).rightMiddle.calcT > 0.5f && Vector3.Distance(rig.rightHand.rigTarget.transform.position, Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.transform.position) < 0.2f)
+                {
+                    Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().linearVelocity = (rig.rightHand.rigTarget.transform.position - Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().position) * 20f;
+                }
+                if (Vector3.Distance(rig.leftHand.rigTarget.transform.position, Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.transform.position) < 0.2f && VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).leftIndex.calcT > 0.5f || VividV2.Classes.Utils.RigUtils.GetCurrentRig(rig).leftMiddle.calcT > 0.5f && Vector3.Distance(rig.leftHand.rigTarget.transform.position, Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.transform.position) < 0.2f)
+                {
+                    Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().linearVelocity = (rig.leftHand.rigTarget.transform.position - Ragdoll.transform.Find("Stand/Gorilla Rig/body").gameObject.GetComponent<Rigidbody>().position) * 20f;
+                }
             }
         }
         public static Vector3 startForward;
