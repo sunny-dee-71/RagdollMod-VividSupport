@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using VividV2.Classes.Buttons;
+using VividV2.Classes.Buttons.Variables;
 using VividV2.Classes.Enums;
 using VividV2.Classes.Enums.Keybinds;
 using VividV2.Core;
@@ -12,15 +13,16 @@ namespace RagdollMod.Mods
 {
     public class RagdollMod : Module
     {
-        public Variable keybind;
-        public static Variable grav;
+        public KeybindVariable keybind;
+        public static BoolVariable grav;
         public RagdollMod() : base("Ragdoll", Categories.Ragdoll, true)
         {
-            keybind = AddVariable(new Variable("Ragdoll Bind", KeybindType.SingleHand, HandType.Right, KeybindButton.Primary));
-            grav = AddVariable(new Variable("Gravity", true));
-            AddVariable(new Variable("Ragdoll Velocity X", 0, -100, 100));
-            AddVariable(new Variable("Ragdoll Velocity Y", 0, -100, 100));
-            AddVariable(new Variable("Ragdoll Velocity Z", 0, -100, 100));
+            keybind = new KeybindVariable("Ragdoll Bind", KeybindType.SingleHand, HandType.Right, KeybindButton.Primary)
+            grav = new BoolVariable("Gravity", true);
+            AddVariable(grav);
+            AddVariable(new IntVariable("Ragdoll Velocity X", 0, -100, 100));
+            AddVariable(new IntVariable("Ragdoll Velocity Y", 0, -100, 100));
+            AddVariable(new IntVariable("Ragdoll Velocity Z", 0, -100, 100));
         }
 
 
@@ -28,12 +30,12 @@ namespace RagdollMod.Mods
         {
             if (!Enabled) return;
 
-            if (keybind.PressedValue)
+            if (keybind.Pressed)
             {
                 Plugin.instance.EnableRagdoll(new UnityEngine.Vector3(
-                    (float)GetVariable("Ragdoll Velocity X").IntValue,
-                    (float)GetVariable("Ragdoll Velocity Y").IntValue,
-                    (float)GetVariable("Ragdoll Velocity Z").IntValue
+                    (float)GetVariable<IntVariable>("Ragdoll Velocity X").Value,
+                    (float)GetVariable<IntVariable>("Ragdoll Velocity Y").Value,
+                    (float)GetVariable<IntVariable>("Ragdoll Velocity Z").Value
                 ));
             }
             else
