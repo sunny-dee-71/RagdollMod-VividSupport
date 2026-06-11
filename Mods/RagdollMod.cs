@@ -20,6 +20,7 @@ namespace RagdollMod.Mods
             keybind = new KeybindVariable("Ragdoll Bind", KeybindType.SingleHand, HandType.Right, KeybindButton.Primary);
             grav = new BoolVariable("Gravity", true);
             AddVariable(grav);
+            AddVariable(keybind);
             AddVariable(new IntVariable("Ragdoll Velocity X", 0, -100, 100));
             AddVariable(new IntVariable("Ragdoll Velocity Y", 0, -100, 100));
             AddVariable(new IntVariable("Ragdoll Velocity Z", 0, -100, 100));
