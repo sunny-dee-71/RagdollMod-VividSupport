@@ -15,6 +15,8 @@ using UnityEngine;
 using UnityEngine.Animations.Rigging;
 using UnityEngine.UI;
 using Valve.VR;
+using VividV2.Classes.Buttons;
+using VividV2.Classes.Buttons.Variables;
 
 namespace RagdollMod
 {
@@ -126,7 +128,12 @@ namespace RagdollMod
             DisableCosmetics();
 
             Ragdoll = LoadAsset("ragdoll");
-            SetupSounds(Ragdoll.transform);
+            Rigidbody goodBody = Ragdoll.transform.Find("Stand/Gorilla Rig/body/head").GetComponent<Rigidbody>();
+            foreach (Rigidbody Rbody in Ragdoll.GetComponentsInChildren<Rigidbody>())
+            {
+                CopyRigidbodySettings(Rbody, goodBody);
+            }
+                SetupSounds(Ragdoll.transform);
 
             CacheBones();
 
@@ -137,7 +144,7 @@ namespace RagdollMod
 
             SetHandPose("L", VRRig.LocalRig.leftHand.rigTarget);
             SetHandPose("R", VRRig.LocalRig.rightHand.rigTarget);
-
+           
             ApplyInitialVelocity(extraVelocity);
 
             CacheRagdoll();
